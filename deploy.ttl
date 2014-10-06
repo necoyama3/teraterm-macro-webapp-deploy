@@ -1,0 +1,61 @@
+;===========================================================
+; Filename    : deploy.ttl
+; Description : SSH Auto login
+; Author      : necoyama3
+; Created     : 2014/10/06
+; modified    :
+;===========================================================
+
+;; 接続先ホスト／ユーザ名／パスワード／送信ファイル設定
+HOSTADDR = 'host'
+USERNAME = 'user'
+PASSWORD = 'password'
+DESTFILE = 'dest-war-path'
+SOURFILE = 'src-war-path'
+PROMPT = '[root@localhost ~]#'
+TIMEOUT = 10
+;===========================================================
+
+COMMAND = HOSTADDR
+strconcat COMMAND ':22 /ssh /2 /auth=password /user='
+strconcat COMMAND USERNAME
+strconcat COMMAND ' /passwd='
+strconcat COMMAND PASSWORD
+
+connect COMMAND
+
+;; 接続判定1（接続出来ない場合はメッセージを表示しマクロ終了）
+if result<>2 then
+    messagebox 'It could not be connected.' 'Connection Error'
+    end
+endif
+
+;; 接続判定2（10秒以内にプロンプトが表示されない場合TeraTerm終了）
+timeout = TIMEOUT
+wait '$' '#' '>'
+if result=0 then
+    disconnect 0
+    end
+endif
+
+;; tomcat stop
+sendln "service tomcat stop"
+wait PROMPT
+
+;; deploy
+sendln "rm -fr /usr/local/tomcat/apache-tomcat-7.0.22/webapps/[war-name]*"
+wait PROMPT
+
+setsync 1
+scpsend SOURFILE DESTFILE
+wait PROMPT
+sendln "chmod 755 " DESTFILE
+sendln "chown tomcat:tomcat " DESTFILE
+
+;; tomcat start
+sendln "service tomcat start"
+wait PROMPT
+
+sendln 'exit'
+
+end
