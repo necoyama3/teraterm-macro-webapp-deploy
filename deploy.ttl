@@ -46,8 +46,14 @@ wait PROMPT
 sendln "rm -fr /usr/local/tomcat/apache-tomcat-7.0.22/webapps/[war-name]*"
 wait PROMPT
 
-setsync 1
 scpsend SOURFILE DESTFILE
+
+do
+  mpause 5000
+  sendln 'ps -ef | grep -v grep | grep -c scp’
+  waitln '0' '1'
+loop while result != 1
+
 wait PROMPT
 sendln "chmod 755 " DESTFILE
 sendln "chown tomcat:tomcat " DESTFILE
